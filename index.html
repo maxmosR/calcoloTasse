@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calcolo Tasse & Guadagni</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --border: #e5e7eb;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.4;
+  }
+  header {
+    background: linear-gradient(135deg, var(--primary), #7c3aed);
+    color: #fff;
+    padding: 24px 20px;
+    box-shadow: var(--shadow);
+  }
+  header .wrap { max-width: 1200px; margin: 0 auto; }
+  header h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  header p { margin: 0; opacity: .9; font-size: .95rem; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+  button {
+    font-family: inherit;
+    font-size: .9rem;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all .15s;
+    font-weight: 600;
+  }
+  button:active { transform: translateY(1px); }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-ghost { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: #f9fafb; }
+  .btn-danger { background: var(--red-bg); color: var(--red); }
+  .btn-danger:hover { background: #fecaca; }
+
+  .summary {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+  .summary .pill {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 16px;
+    box-shadow: var(--shadow);
+  }
+  .summary .pill .lbl { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .summary .pill .val { font-size: 1.1rem; font-weight: 700; }
+
+  .product {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .product-head {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1fr 1.2fr 1.2fr auto;
+    gap: 12px;
+    padding: 16px 18px;
+    align-items: end;
+    background: #fbfcfe;
+    border-bottom: 1px solid var(--border);
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .field label { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  .field .computed {
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 8px 0;
+    color: var(--primary);
+  }
+  input[type="text"], input[type="number"] {
+    font-family: inherit;
+    font-size: .95rem;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+  }
+  .product-head .del-btn { align-self: center; }
+
+  .deductions { padding: 16px 18px; }
+  .deductions h4 {
+    margin: 0 0 12px;
+    font-size: .8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ded-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.3fr 1.3fr auto;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .ded-row .type-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .ded-row .type-toggle button {
+    flex: 1;
+    border-radius: 0;
+    padding: 8px 4px;
+    font-size: .8rem;
+    background: #fff;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .ded-row .type-toggle button.active { background: var(--primary); color: #fff; }
+  .ded-amount {
+    font-weight: 600;
+    color: var(--red);
+    text-align: right;
+    font-size: .92rem;
+  }
+  .ded-head {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.3fr 1.3fr auto;
+    gap: 10px;
+    font-size: .68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    font-weight: 600;
+    margin-bottom: 6px;
+    padding: 0 2px;
+  }
+  .icon-btn {
+    background: transparent;
+    color: var(--muted);
+    padding: 6px 8px;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  .icon-btn:hover { color: var(--red); }
+
+  .product-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    background: #fbfcfe;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .foot-stats { display: flex; gap: 22px; flex-wrap: wrap; }
+  .foot-stats .stat .lbl { font-size: .7rem; color: var(--muted); text-transform: uppercase; }
+  .foot-stats .stat .num { font-size: 1.15rem; font-weight: 700; }
+  .profit-pos { color: var(--green); }
+  .profit-neg { color: var(--red); }
+
+  .add-ded-btn {
+    background: #eef2ff;
+    color: var(--primary);
+    font-size: .85rem;
+    padding: 8px 14px;
+  }
+  .add-ded-btn:hover { background: #e0e7ff; }
+
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty h3 { margin: 0 0 8px; }
+
+  .badge {
+    display: inline-block;
+    background: var(--green-bg);
+    color: var(--green);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+
+  @media (max-width: 820px) {
+    .product-head { grid-template-columns: 1fr 1fr; }
+    .ded-head { display: none; }
+    .ded-row { grid-template-columns: 1fr 1fr; }
+    .summary { width: 100%; margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>💰 Calcolo Tasse & Guadagni</h1>
+    <p>Inserisci i tuoi prodotti, calcola il prezzo con IVA e scopri il guadagno reale dopo le detrazioni.</p>
+  </div>
+</header>
+
+<div class="container">
+  <div class="toolbar">
+    <button class="btn-primary" id="addProduct">➕ Aggiungi prodotto</button>
+    <button class="btn-ghost" id="clearAll">🗑️ Cancella tutto</button>
+    <div class="summary">
+      <div class="pill">
+        <div class="lbl">Ricavo totale</div>
+        <div class="val" id="totalRevenue">€ 0,00</div>
+      </div>
+      <div class="pill">
+        <div class="lbl">Guadagno totale</div>
+        <div class="val" id="totalProfit">€ 0,00</div>
+      </div>
+    </div>
+  </div>
+  <div id="syncStatus" style="font-size:.8rem; color:#6b7280; margin-bottom:14px;">☁️ …</div>
+
+  <div id="products"></div>
+</div>
+
+<script>
+const fmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+const STORAGE_KEY = 'calcoloTasse_v1';
+
+// ⬇️ URL del backend su Vercel. Quando pubblichi la pagina su GitHub Pages,
+//    incolla qui l'indirizzo del tuo deploy Vercel (es. 'https://calcolo-tasse.vercel.app').
+//    In locale o se ospiti tutto su Vercel, lascia '' (stesso dominio).
+const API_BASE = '';
+const API = API_BASE + '/api/products';
+
+let state = loadLocal();
+
+// Copia locale immediata (offline / caricamento istantaneo)
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { products: [] };
+}
+
+// Carica dal database all'avvio
+async function loadFromServer() {
+  try {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const list = await res.json();
+    // Rimuove i campi interni di Mongo (_id, order) per coerenza
+    state.products = list.map(({ _id, order, ...p }) => p);
+    saveLocal();
+    setStatus('synced');
+  } catch (e) {
+    setStatus('offline');
+    console.warn('Uso i dati locali (server non raggiungibile):', e.message);
+  }
+  render();
+}
+
+function saveLocal() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+// Salvataggio sul server con "debounce" (evita troppe chiamate mentre si digita)
+let saveTimer = null;
+function save() {
+  saveLocal();
+  setStatus('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(syncToServer, 600);
+}
+
+async function syncToServer() {
+  try {
+    const res = await fetch(API, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.products)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    setStatus('synced');
+  } catch (e) {
+    setStatus('offline');
+    console.warn('Salvataggio sul server fallito (salvato in locale):', e.message);
+  }
+}
+
+function setStatus(s) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  const map = {
+    saving:  { t: '💾 Salvataggio…', c: '#6b7280' },
+    synced:  { t: '☁️ Salvato su MongoDB', c: '#16a34a' },
+    offline: { t: '⚠️ Offline (solo locale)', c: '#dc2626' },
+  };
+  const m = map[s] || map.synced;
+  el.textContent = m.t;
+  el.style.color = m.c;
+}
+
+function uid() {
+  return 'id' + Math.floor(performance.now() * 1000).toString(36) + Math.floor(Math.random ? 0 : 0).toString();
+}
+// performance.now può ripetersi; aggiungiamo un contatore
+let _counter = 0;
+function newId() { _counter++; return 'id_' + Date.now().toString(36) + '_' + _counter; }
+
+function newProduct() {
+  return {
+    id: newId(),
+    name: '',
+    priceNoVat: '',
+    vat: 22,
+    salePrice: '',
+    deductions: []
+  };
+}
+
+function newDeduction() {
+  return { id: newId(), label: '', type: 'percent', value: '' };
+}
+
+// ---- Calcoli ----
+function num(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+function priceWithVat(p) {
+  return num(p.priceNoVat) * (1 + num(p.vat) / 100);
+}
+
+function deductionAmount(d, salePrice) {
+  if (d.type === 'percent') return salePrice * num(d.value) / 100;
+  return num(d.value);
+}
+
+function totalDeductions(p) {
+  const sale = num(p.salePrice);
+  return p.deductions.reduce((s, d) => s + deductionAmount(d, sale), 0);
+}
+
+function profit(p) {
+  // Guadagno = prezzo di vendita - costo (prezzo con iva) - detrazioni
+  return num(p.salePrice) - priceWithVat(p) - totalDeductions(p);
+}
+
+// ---- Azioni ----
+function addProduct() {
+  state.products.push(newProduct());
+  save(); render();
+}
+
+function removeProduct(id) {
+  state.products = state.products.filter(p => p.id !== id);
+  save(); render();
+}
+
+function addDeduction(pid) {
+  const p = state.products.find(p => p.id === pid);
+  if (p) { p.deductions.push(newDeduction()); save(); render(); }
+}
+
+function removeDeduction(pid, did) {
+  const p = state.products.find(p => p.id === pid);
+  if (p) { p.deductions = p.deductions.filter(d => d.id !== did); save(); render(); }
+}
+
+function clearAll() {
+  if (confirm('Vuoi davvero cancellare tutti i prodotti?')) {
+    state = { products: [] };
+    save(); render();
+  }
+}
+
+// Aggiorna un campo senza re-render completo (per non perdere il focus)
+function updateField(pid, field, value) {
+  const p = state.products.find(p => p.id === pid);
+  if (!p) return;
+  p[field] = value;
+  save();
+  refreshComputed(pid);
+}
+
+function updateDeduction(pid, did, field, value) {
+  const p = state.products.find(p => p.id === pid);
+  if (!p) return;
+  const d = p.deductions.find(d => d.id === did);
+  if (!d) return;
+  d[field] = value;
+  save();
+  refreshComputed(pid);
+}
+
+function setDeductionType(pid, did, type) {
+  updateDeduction(pid, did, 'type', type);
+  render(); // il toggle cambia aspetto
+}
+
+// Aggiorna solo i valori calcolati di un prodotto + i totali
+function refreshComputed(pid) {
+  const p = state.products.find(p => p.id === pid);
+  if (!p) return;
+  const card = document.querySelector(`[data-product="${pid}"]`);
+  if (card) {
+    const pv = card.querySelector('.computed-vat');
+    if (pv) pv.textContent = fmt.format(priceWithVat(p));
+    const sale = num(p.salePrice);
+    card.querySelectorAll('[data-ded-amount]').forEach(el => {
+      const did = el.getAttribute('data-ded-amount');
+      const d = p.deductions.find(d => d.id === did);
+      if (d) el.textContent = '− ' + fmt.format(deductionAmount(d, sale));
+    });
+    const td = card.querySelector('.computed-deductions');
+    if (td) td.textContent = fmt.format(totalDeductions(p));
+    const pr = card.querySelector('.computed-profit');
+    if (pr) {
+      const val = profit(p);
+      pr.textContent = fmt.format(val);
+      pr.className = 'num computed-profit ' + (val >= 0 ? 'profit-pos' : 'profit-neg');
+    }
+  }
+  refreshTotals();
+}
+
+function refreshTotals() {
+  const revenue = state.products.reduce((s, p) => s + num(p.salePrice), 0);
+  const prof = state.products.reduce((s, p) => s + profit(p), 0);
+  document.getElementById('totalRevenue').textContent = fmt.format(revenue);
+  const tp = document.getElementById('totalProfit');
+  tp.textContent = fmt.format(prof);
+  tp.style.color = prof >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+// ---- Render ----
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function render() {
+  const root = document.getElementById('products');
+  if (state.products.length === 0) {
+    root.innerHTML = `
+      <div class="empty">
+        <h3>Nessun prodotto ancora 📦</h3>
+        <p>Clicca su "Aggiungi prodotto" per iniziare a calcolare.</p>
+      </div>`;
+    refreshTotals();
+    return;
+  }
+
+  root.innerHTML = state.products.map(p => productHTML(p)).join('');
+
+  // Collega gli eventi
+  state.products.forEach(p => {
+    const card = document.querySelector(`[data-product="${p.id}"]`);
+    card.querySelector('[data-f="name"]').addEventListener('input', e => updateField(p.id, 'name', e.target.value));
+    card.querySelector('[data-f="priceNoVat"]').addEventListener('input', e => updateField(p.id, 'priceNoVat', e.target.value));
+    card.querySelector('[data-f="vat"]').addEventListener('input', e => updateField(p.id, 'vat', e.target.value));
+    card.querySelector('[data-f="salePrice"]').addEventListener('input', e => updateField(p.id, 'salePrice', e.target.value));
+    card.querySelector('[data-del-product]').addEventListener('click', () => removeProduct(p.id));
+    card.querySelector('[data-add-ded]').addEventListener('click', () => addDeduction(p.id));
+
+    p.deductions.forEach(d => {
+      const row = card.querySelector(`[data-ded="${d.id}"]`);
+      row.querySelector('[data-df="label"]').addEventListener('input', e => updateDeduction(p.id, d.id, 'label', e.target.value));
+      row.querySelector('[data-df="value"]').addEventListener('input', e => updateDeduction(p.id, d.id, 'value', e.target.value));
+      row.querySelector('[data-del-ded]').addEventListener('click', () => removeDeduction(p.id, d.id));
+      row.querySelectorAll('[data-set-type]').forEach(b => {
+        b.addEventListener('click', () => setDeductionType(p.id, d.id, b.getAttribute('data-set-type')));
+      });
+    });
+  });
+
+  refreshTotals();
+}
+
+function productHTML(p) {
+  const title = p.name ? esc(p.name) : 'Prodotto senza nome';
+  const profVal = profit(p);
+  return `
+  <div class="product" data-product="${p.id}">
+    <div class="product-head">
+      <div class="field">
+        <label>Nome prodotto</label>
+        <input type="text" data-f="name" value="${esc(p.name)}" placeholder="Es. Maglietta" />
+      </div>
+      <div class="field">
+        <label>Prezzo senza IVA</label>
+        <input type="number" step="0.01" data-f="priceNoVat" value="${esc(p.priceNoVat)}" placeholder="0,00" />
+      </div>
+      <div class="field">
+        <label>IVA %</label>
+        <input type="number" step="0.1" data-f="vat" value="${esc(p.vat)}" placeholder="22" />
+      </div>
+      <div class="field">
+        <label>Prezzo con IVA</label>
+        <div class="computed computed-vat">${fmt.format(priceWithVat(p))}</div>
+      </div>
+      <div class="field">
+        <label>Prezzo di vendita</label>
+        <input type="number" step="0.01" data-f="salePrice" value="${esc(p.salePrice)}" placeholder="0,00" />
+      </div>
+      <button class="btn-danger del-btn" data-del-product title="Elimina prodotto">✕</button>
+    </div>
+
+    <div class="deductions">
+      <h4>📉 Detrazioni dal prezzo di vendita</h4>
+      ${p.deductions.length ? `
+        <div class="ded-head">
+          <div>Descrizione</div>
+          <div>Tipo</div>
+          <div>Valore</div>
+          <div style="text-align:right">Importo detratto</div>
+          <div></div>
+        </div>` : ''}
+      ${p.deductions.map(d => deductionHTML(p, d)).join('')}
+      <button class="add-ded-btn" data-add-ded>➕ Aggiungi detrazione</button>
+    </div>
+
+    <div class="product-foot">
+      <div class="foot-stats">
+        <div class="stat">
+          <div class="lbl">Costo (con IVA)</div>
+          <div class="num">${fmt.format(priceWithVat(p))}</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Totale detrazioni</div>
+          <div class="num computed-deductions">${fmt.format(totalDeductions(p))}</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Guadagno reale</div>
+          <div class="num computed-profit ${profVal >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt.format(profVal)}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function deductionHTML(p, d) {
+  const amount = deductionAmount(d, num(p.salePrice));
+  const valuePlaceholder = d.type === 'percent' ? 'es. 10' : 'es. 5,00';
+  return `
+  <div class="ded-row" data-ded="${d.id}">
+    <input type="text" data-df="label" value="${esc(d.label)}" placeholder="Es. Commissione, Spedizione..." />
+    <div class="type-toggle">
+      <button data-set-type="percent" class="${d.type === 'percent' ? 'active' : ''}">%</button>
+      <button data-set-type="fixed" class="${d.type === 'fixed' ? 'active' : ''}">€</button>
+    </div>
+    <input type="number" step="0.01" data-df="value" value="${esc(d.value)}" placeholder="${valuePlaceholder}" />
+    <div class="ded-amount" data-ded-amount="${d.id}">− ${fmt.format(amount)}</div>
+    <button class="icon-btn" data-del-ded title="Rimuovi">🗑️</button>
+  </div>`;
+}
+
+// ---- Init ----
+document.getElementById('addProduct').addEventListener('click', addProduct);
+document.getElementById('clearAll').addEventListener('click', clearAll);
+render();            // mostra subito i dati locali
+loadFromServer();   // poi sincronizza con MongoDB
+</script>
+</body>
+</html>
